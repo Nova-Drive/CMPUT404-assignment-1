@@ -2,7 +2,8 @@
 import socketserver
 
 # Copyright 2013 Abram Hindle, Eddie Antonio Santos
-# 
+# Modified my Cameron Matthew for the assignment
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -30,9 +31,16 @@ import socketserver
 class MyWebServer(socketserver.BaseRequestHandler):
     
     def handle(self):
-        self.data = self.request.recv(1024).strip()
+        '''self.data = self.request.recv(1024).strip()
         print ("Got a request of: %s\n" % self.data)
-        self.request.sendall(bytearray("OK",'utf-8'))
+        message = "Return Message".encode()
+        self.request.send(message)
+        '''
+        # Echo the back to the client
+        data = self.request.recv(1024)
+        self.request.send(data)
+        return
+        
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
@@ -44,3 +52,4 @@ if __name__ == "__main__":
     # Activate the server; this will keep running until you
     # interrupt the program with Ctrl-C
     server.serve_forever()
+    
