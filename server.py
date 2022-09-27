@@ -27,19 +27,50 @@ import socketserver
 
 # try: curl -v -X GET http://127.0.0.1:8080/
 
+'''
+Things to figure out:
+- How to properly format headers
+- How to serve files
+- Where to put the logic for doing what tasks need to be done (ex. sending a 405 as a return)
+- Flowchart of what a server does when it gets a request
+'''
+
 
 class MyWebServer(socketserver.BaseRequestHandler):
     
     def handle(self):
-        '''self.data = self.request.recv(1024).strip()
-        print ("Got a request of: %s\n" % self.data)
-        message = "Return Message".encode()
-        self.request.send(message)
-        '''
-        # Echo the back to the client
-        data = self.request.recv(1024)
-        self.request.send(data)
-        return
+        
+        self.data = self.request.recv(1024).strip()
+        process_request(self)
+        
+        self.message = bytes("reply", 'utf-8')
+        self.headers = bytes("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n", 'utf-8')
+        self.request.sendall(self.headers)
+        
+        self.request.sendall(self.data)
+        #self.send_response(200)
+        self.request.close()
+        
+        
+#determine what needs to be done
+def process_request(self):
+    self.data = self.request.recv(1024).strip()
+    self.moder = self.data.decode("utf-8")
+    print(self.moder)
+        
+        
+#find and serve the file (200)
+def serve_file(self):
+    self.data
+    
+#if the file cannot be found (404 error)
+def file_not_found_response(self):
+    self.data
+    
+#correct wrong path (301 error)
+def fix_path_ending(self):
+    self.data
+        
         
 
 if __name__ == "__main__":
