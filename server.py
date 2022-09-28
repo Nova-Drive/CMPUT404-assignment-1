@@ -1,5 +1,6 @@
 #  coding: utf-8 
 import socketserver
+from pathlib import Path
 
 # Copyright 2013 Abram Hindle, Eddie Antonio Santos
 # Modified my Cameron Matthew for the assignment
@@ -37,39 +38,78 @@ Things to figure out:
 
 
 class MyWebServer(socketserver.BaseRequestHandler):
-    
-    def handle(self):
-        
-        self.data = self.request.recv(1024).strip()
-        process_request(self)
-        
-        self.message = bytes("reply", 'utf-8')
+
+    def process_mode(self):
+        self.headers = self.data.decode("utf-8").split('\r\n')
+        self.mode = self.headers[0][0:4].strip()
+        print(self.mode)
+        print("Headers--------")
+        for headers in self.headers: 
+            print(headers)
+        print("Headers--------")
+        self.request_path = self.headers[0].split(' ')[1]
+        print(self.request_path)
+
+    def get_file(self):
+        # Open file, read entire file, send in message
+        # Alternatively, just send file using self.request.sendFile (not sure if works)
+
+        # Adapted from https://stackoverflow.com/questions/3430372/how-do-i-get-the-full-path-of-the-current-files-directory
+        self.current_path = Path(__file__).parent.absolute()
+
+
+
+        try:
+            self.file = open(self.file_name, 'r')
+        except FileNotFoundError:
+            #SomethingSomething Cant find file
+            self.return_404()
+            return
+
+            
         self.headers = bytes("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n", 'utf-8')
+        self.message = bytes(self.file.read(), 'utf-8')
         self.request.sendall(self.headers)
-        
-        self.request.sendall(self.data)
-        #self.send_response(200)
+        self.request.sendall(self.message)
+
+
+
+    def return_405(self):
+        self.headers = bytes("HTTP/1.1 405 Method Not Allowed\r\nContent-Type: text/plain\r\n\r\n", 'utf-8')
+        self.message = bytes("405 Method Not Allowed\n", 'utf-8')
+        self.request.sendall(self.headers)
+        self.request.sendall(self.message)
         self.request.close()
-        
-        
-#determine what needs to be done
-def process_request(self):
-    self.data = self.request.recv(1024).strip()
-    self.moder = self.data.decode("utf-8")
-    print(self.moder)
-        
-        
-#find and serve the file (200)
-def serve_file(self):
-    self.data
-    
-#if the file cannot be found (404 error)
-def file_not_found_response(self):
-    self.data
-    
-#correct wrong path (301 error)
-def fix_path_ending(self):
-    self.data
+
+    def return_404(self):
+        self.headers = bytes("HTTP/1.1 404 File Not Found\r\nContent-Type: text/plain\r\n\r\n", 'utf-8')
+        self.message = bytes("404 File Not Found\n", 'utf-8')
+        self.request.sendall(self.headers)
+        self.request.sendall(self.message)
+        self.request.close()
+
+    def return_200(self):
+        self.headers = bytes("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n", 'utf-8')
+        self.message = bytes("GET IS OK\n", 'utf-8')
+        self.request.sendall(self.headers)
+        self.request.sendall(self.message)
+
+    # Do all of the handling of stuff
+    def handle(self):
+        # get the request
+        self.data = self.request.recv(1024).strip()
+
+        #determine what needs to be done
+        self.process_mode()
+
+        #if GET, process what it wants. If not, return 405
+        if(self.mode != "GET"):
+            self.return_405()
+            return
+
+        #self.get_file()
+        self.return_200()
+        self.request.close()
         
         
 
