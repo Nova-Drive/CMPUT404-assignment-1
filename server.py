@@ -1,6 +1,8 @@
 #  coding: utf-8 
+from genericpath import isdir
 import socketserver
 from pathlib import Path
+import os
 
 # Copyright 2013 Abram Hindle, Eddie Antonio Santos
 # Modified my Cameron Matthew for the assignment
@@ -39,7 +41,8 @@ Things to figure out:
 
 class MyWebServer(socketserver.BaseRequestHandler):
 
-    def process_mode(self):
+    # Processes the request and splits it up into the mode, what to get, headers, etc.
+    def process(self):
         self.headers = self.data.decode("utf-8").split('\r\n')
         self.mode = self.headers[0][0:4].strip()
         print(self.mode)
@@ -55,22 +58,53 @@ class MyWebServer(socketserver.BaseRequestHandler):
         # Alternatively, just send file using self.request.sendFile (not sure if works)
 
         # Adapted from https://stackoverflow.com/questions/3430372/how-do-i-get-the-full-path-of-the-current-files-directory
-        self.current_path = Path(__file__).parent.absolute()
+        self.current_path = str(Path(__file__).parent.absolute()) + "/www"   #current path of server.py
+        self.reqested_path = self.current_path + self.request_path      #requested resource
+
+        print("**********LOOKING FOR " + self.reqested_path + "***************")
+        # requested path may be a file or directory. Here is where we find out.
+
+        # REMEMBER: BASE DIRECTORY DOES NOT HAVE INDEX.HTML. MAKE SURE THE BASS ROOT IS WWW
+        if (os.path.isfile(self.reqested_path)):
+            # If the path leads to a file and it exists
+            print("%%%%%%%%%%%%%%%%%%%%%%%% IS FILE %%%%%%%%%%%%%%%%%%%%%%%")
+            self.file = open(self.reqested_path, 'r')
+            self.message = self.file.read()
+            self.message = bytes(self.message, "utf-8")
+            self.file.close()
+            # Add more logic to make sure the content type is correct (text/css vs text/html)
+            content_type = self.request_path.split('.')[1]  #the suffix of the file
+
+            header = "HTTP/1.1 200 OK\r\nContent-Type: text/" + content_type + "\r\n\r\n"
+            self.headers = bytes(header, 'utf-8')
+            self.request.sendall(self.headers)
+            self.request.sendall(self.message)
 
 
+        elif (os.path.isdir(self.reqested_path)):
+            # If the path leads to a directory and exists
+            # Return 301 error with path to index.html in the directory
 
-        try:
-            self.file = open(self.file_name, 'r')
-        except FileNotFoundError:
-            #SomethingSomething Cant find file
-            self.return_404()
+
+            print(self.reqested_path)
+
+
+            print("@@@@@@@@@@@@@@@@@@@@@@@@ IS DIRECTORY @@@@@@@@@@@@@@@@@@@@@@@@@@@")
+
+
+            correct_path = "http://127.0.0.1:8080" + self.request_path + "/index.html"
+
+
+            print("####CORRECT PATH: " + correct_path + "#####")
+
+
+            self.return_301(correct_path)
             return
 
-            
-        self.headers = bytes("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n", 'utf-8')
-        self.message = bytes(self.file.read(), 'utf-8')
-        self.request.sendall(self.headers)
-        self.request.sendall(self.message)
+        else:
+            # return 404 not found
+            self.return_404()
+            return
 
 
 
@@ -88,6 +122,14 @@ class MyWebServer(socketserver.BaseRequestHandler):
         self.request.sendall(self.message)
         self.request.close()
 
+    def return_301(self, correct_path):
+        header = "HTTP/1.1 301 Moved Permanently\r\nLocation: " + correct_path + "\r\nContent-Type: text/plain\r\n\r\n"
+        self.headers = bytes(header, "utf-8")
+        self.message = bytes("301 Moved Permanently\n", "utf-8")
+        self.request.sendall(self.headers)
+        self.request.sendall(self.message)
+        self.request.close()
+
     def return_200(self):
         self.headers = bytes("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n", 'utf-8')
         self.message = bytes("GET IS OK\n", 'utf-8')
@@ -96,19 +138,21 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
     # Do all of the handling of stuff
     def handle(self):
+        print("****************************************")
         # get the request
         self.data = self.request.recv(1024).strip()
+        self.message = ""
 
         #determine what needs to be done
-        self.process_mode()
+        self.process()
 
         #if GET, process what it wants. If not, return 405
         if(self.mode != "GET"):
             self.return_405()
             return
 
-        #self.get_file()
-        self.return_200()
+        self.get_file()
+        #self.return_200()
         self.request.close()
         
         
