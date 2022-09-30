@@ -102,7 +102,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
             print(self.reqested_path)
 
-
+            """
             print("@@@@@@@@@@@@@@@@@@@@@@@@ IS DIRECTORY @@@@@@@@@@@@@@@@@@@@@@@@@@@")
 
 
@@ -113,6 +113,17 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
 
             self.return_301(correct_path)
+            """
+
+
+            header = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" #content_type
+            self.headers = bytes(header, 'utf-8')
+
+            message = "http://127.0.0.1:8080" + self.request_path + "index.html"
+            self.message = bytes(message, 'utf-8')
+            self.request.sendall(self.headers)
+            self.request.sendall(self.message)
+            self.request.close()
             return
 
         elif (os.path.isdir(self.reqested_path)):
@@ -125,7 +136,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
             
             correct_path = "http://127.0.0.1:8080" + self.request_path + "/"
 
-            print("####CORRECT PATH: " + correct_path + "#####")
+            print("Sending Correct Path: " + correct_path)
             self.return_301(correct_path)
             return        
 
@@ -157,12 +168,6 @@ class MyWebServer(socketserver.BaseRequestHandler):
         self.request.sendall(self.headers)
         self.request.sendall(self.message)
         self.request.close()
-
-    def return_200(self):
-        self.headers = bytes("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n", 'utf-8')
-        self.message = bytes("GET IS OK\n", 'utf-8')
-        self.request.sendall(self.headers)
-        self.request.sendall(self.message)
 
     # Do all of the handling of stuff
     def handle(self):
